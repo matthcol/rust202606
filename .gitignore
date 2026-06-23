@@ -1,0 +1,5 @@
+target/
+*.lock
+*.exe
+*.pdb
+main
