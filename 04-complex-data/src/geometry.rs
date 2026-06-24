@@ -2,7 +2,7 @@
 pub struct Point{
     pub x: f64,
     pub y: f64,
-    pub name: String
+    pub name: Option<String>
 }
 
 impl Point {
@@ -12,3 +12,20 @@ impl Point {
     
 }
 
+#[cfg(test)]
+mod tests{
+    use rstest::{fixture, rstest};
+    use super::Point;
+
+    #[fixture]
+    fn point_a() -> Point{
+        Point { x: 3.5, y: 7.25, name: Some(String::from("A")) }
+    }
+
+    #[rstest]
+    fn test_point_distance_self(point_a: Point){
+        let d = point_a.distance(&point_a);
+        assert_eq!(0., d)
+    }
+
+}

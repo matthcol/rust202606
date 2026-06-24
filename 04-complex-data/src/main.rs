@@ -1,3 +1,6 @@
+use std::process;
+use std::env;
+
 use flightplan::FlightPlan;
 
 use crate::geometry::Point;
@@ -5,7 +8,7 @@ use crate::geometry::Point;
 mod flightplan;
 mod geometry;
 
-fn play_with_flights() {
+fn play_with_flights_1() {
     let fp1  = FlightPlan{
         adep: String::from("LFBO"),
         ades: String::from("LFST"),
@@ -43,14 +46,40 @@ fn play_with_flights() {
     }
 }
 
-fn play_with_points(){
-    let pt1 = Point{x: 3.5, y: 13.25, name: String::from("A")};
-    let pt2 = Point{x: 7.5, y: 10.25, name: String::from("B")};
-    let d = pt1.distance(&pt2);
-    println!("Distance between {pt1:?} and {pt2:?} = {d}")
+fn play_with_geometry_1(){
+    let pt1 = Point{x: 3.5, y: 13.25, name: Some(String::from("A"))};
+    let pt2 = Point{x: 7.5, y: 10.25, name: Some(String::from("B"))};
+    let pt3 = Point{x: 7.5, y: 13.25, name: None};
+    let points = vec![pt1, pt2, pt3];
+    let pt_ref = points.get(0).unwrap();
+    for pt in &points{
+        let d = pt.distance(pt_ref);
+        println!("- {pt:?}");
+        println!("\t* name: {:?}", pt.name); // pt.name.unwrap_or(String::from("?")));
+        println!("\t* distance to {pt_ref:?}: {d}");
+    }
 }
 
 fn main(){
-    play_with_flights();
-    play_with_points();
+    let args: Vec<String> = env::args()
+        .collect();
+    // println!("{args:?}");
+    match args.get(1).map(String::as_str){
+        Some("flight1") => {
+            println!("scenario flight plan 1");
+            play_with_flights_1();
+        },
+        Some("geom1") => {
+            println!("scenario geometry 1");
+            play_with_geometry_1();
+        },
+        Some(_) => {
+            eprintln!("[ERROR] scenario not handled");
+            process::exit(1)
+        },
+        None => {
+            eprintln!("[ERROR] no scenario was given");
+            process::exit(2)
+        }
+    }
 }
