@@ -45,3 +45,9 @@ Build
 cargo build
 cargo build --release
 ```
+
+## Ajout dépendances
+```
+cargo add somedep
+cargo add --dev rstest
+```

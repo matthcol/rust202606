@@ -1,7 +1,5 @@
-use euclide::{gcd, gcd_ref};
+use euclide::{gcd, gcd_ref, gcd_option, gcd_result};
 use tools::swap;
-
-use crate::euclide::{gcd_option, gcd_result};
 
 mod euclide;
 mod tools;

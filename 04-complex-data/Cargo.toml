@@ -1,9 +1,6 @@
 [package]
-name = "fonctions"
+name = "complexdata"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-
-[dev-dependencies]
-rstest = "0.26.1"
