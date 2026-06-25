@@ -1,9 +1,12 @@
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::collections::HashMap;
 use std::process;
 use std::env;
 
 use flightplan::FlightPlan;
 
+use crate::flightplan::FlightLevelParity;
 use crate::geometry::Point;
 
 mod flightplan;
@@ -61,7 +64,8 @@ fn play_with_flight_2_collection(){
         FlightPlan::from(("LFPG", "LFBO",  350)),
         FlightPlan::from(("LFPG", "FMEE")),
         ("FMEE", "FAAA", 450).into(),
-        ("FAAA", "KLAX").into()
+        ("FAAA", "KLAX").into(),
+        FlightPlan::new("WXYZ", "ZYXW", 1234),
     ];
     println!("{vec_flightplan:#?}"); // pretty debug display
     // Vec => index + access O(1)
@@ -71,6 +75,7 @@ fn play_with_flight_2_collection(){
     // - slices
     display_flight_plans(vec_flightplan.as_slice(), "All Flight Plans");
     display_flight_plans(&vec_flightplan, "All Flight Plans (2)");
+    display_flight_plans(&vec_flightplan[..], "All Flight Plans (3)");
     display_flight_plans(&vec_flightplan[..3], "First 3");
     display_flight_plans(&vec_flightplan[3..5], "Flight plans from #3 to #4");
     display_flight_plans(&vec_flightplan[5..], "Flight plans from #5");
@@ -84,9 +89,71 @@ fn play_with_flight_2_collection(){
     println!("Departure Airports with flight level under 400: {adeps:?}");
     let fp_under_300: Vec<(usize, &FlightPlan)> =vec_flightplan.iter()
         .enumerate()
-        .filter(|i_fp| i_fp.1.fl < 300)
+        // .filter(|i_fp| i_fp.1.fl < 300)
+        .filter(|(_, fp)| fp.fl < 300)
         .collect();
-    println!("Flight plans with fl under 300: {fp_under_300:?}")
+    println!("Flight plans with fl under 300: {fp_under_300:?}");
+
+    let fp_under_300_ii: Vec<(usize, usize, &FlightPlan)> = vec_flightplan.iter()
+        .enumerate()
+        .filter(|(_, fp)| fp.fl < 300)
+        .enumerate()
+        .map(|(index_new, (index_orig, fp))| (index_new, index_orig, fp))  // => (index_new, index_orig, FP)
+        .collect();
+    println!("Flight plans with fl under 300: {fp_under_300_ii:?}");
+
+    // TODO: somme des flight level
+    let total_fl: u32 = vec_flightplan.iter()
+        .map(|fp| fp.fl as u32)
+        .sum();
+        // .sum::<u16>();
+    println!("Total fl: {total_fl}");
+    for airport in ["LFPG", "XXXX"]{
+        let opt_min_fp = vec_flightplan.iter()
+            .filter(|fp| fp.adep == airport)
+            .min_by_key(|fp| fp.fl);
+        if let Some(min_fp) = opt_min_fp {
+            println!("Min FP from {airport}: {min_fp}")
+        } else {
+            println!("No FP from {airport}")
+        }
+    }
+
+    vec_flightplan.iter()
+        .for_each(|fp| println!("{} => {:?}", fp, fp.flight_level_parity()));   
+    
+    let parities: Vec<FlightLevelParity> = vec_flightplan.iter()
+        .map(FlightPlan::flight_level_parity)
+        .collect();
+    println!("FL parities: {parities:?}");
+
+    let fp_odd: Vec<&FlightPlan> = vec_flightplan.iter()
+        .filter(|fp| fp.is_fl_parity_odd())
+        .collect();
+    println!("{fp_odd:?}");
+
+    // NB: ok but last iteration => borrowed elements from vector
+    // let fp_odd: Vec<FlightPlan> = vec_flightplan.into_iter()
+    //     .filter(FlightPlan::is_fl_parity_odd)
+    //     .collect();
+    // println!("{vec_flightplan:?}")
+
+    // Exo: 
+    // - map1 : FP => level_parity
+    // - map2 : level_parity => liste des FP
+
+    let mut parity_fps: HashMap<FlightLevelParity, Vec<&FlightPlan>> = HashMap::new();
+    for fp in &vec_flightplan{
+        parity_fps.entry(fp.flight_level_parity())
+            .or_default()
+            .push(fp)
+    }
+    println!("{parity_fps:#?}");
+
+    let mut fps: Vec<&FlightPlan> = vec_flightplan.iter().collect();
+    fps.sort_by_key(|fp| fp.flight_level_parity());
+    println!("{fps:?}")
+    
 }
 
 fn play_with_geometry_1(){
@@ -101,6 +168,38 @@ fn play_with_geometry_1(){
         println!("\t* name: {:?}", pt.name); // pt.name.unwrap_or(String::from("?")));
         println!("\t* distance to {pt_ref:?}: {d}");
     }
+}
+
+fn play_with_simple_maps(){
+    let mut day_note: BTreeMap<&str, u8> =  BTreeMap::new();
+    day_note.insert("MONDAY", 12);
+    day_note.insert("TUESDAY", 20);
+    day_note.insert("WEDNESDAY", 15);
+    println!("{day_note:?}");
+    day_note.insert("MONDAY", 17); // replace
+    println!("{day_note:?}");
+
+    let day_note2: BTreeMap<&str, u8> = BTreeMap::from([
+        ("MONDAY", 3),
+        ("TUESDAY", 20),
+        ("WEDNESDAY", 8),
+        ("THURSDAY", 13),
+        ("FRIDAY", 17),
+        ("SATURDAY", 8),
+        ("SUNDAY", 15),
+    ]);
+    println!("{day_note2:?}");
+
+    let note = day_note2.get("MONDAY").unwrap(); // I'm sure
+    println!("Note: {note}");
+
+    for (day, note) in day_note2.iter(){ // iteration sur les tuples (k,v)
+        println!("{day}: {note}")
+    }
+
+    // other iterations:
+    // - day_note2.key()
+    // - day_note2.values()
 }
 
 fn main(){
@@ -120,8 +219,12 @@ fn main(){
             println!("scenario geometry 1");
             play_with_geometry_1();
         },
-        Some(_) => {
-            eprintln!("[ERROR] scenario not handled");
+        Some("map") => {
+            println!("scenario map");
+            play_with_simple_maps();
+        },
+        Some(scenario) => {
+            eprintln!("[ERROR] scenario not handled: {scenario}");
             process::exit(1)
         },
         None => {

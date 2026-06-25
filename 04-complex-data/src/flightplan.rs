@@ -5,6 +5,18 @@
 use std::{fmt::Display, ops::AddAssign};
 
 #[derive(Debug)]
+#[derive(PartialEq, Eq)]
+#[derive(PartialOrd, Ord)]
+#[derive(Hash)]
+pub enum FlightLevelParity{
+    Odd,
+    Even,
+    Unusable
+}
+
+#[derive(Debug)]
+#[derive(PartialEq, Eq)]
+#[derive(Hash)]
 pub struct FlightPlan{
     pub adep: String,
     pub ades: String,
@@ -20,9 +32,22 @@ impl FlightPlan {
         }
     }
 
-    // TODO: other creation methods ?
-    // TODO: "object" methods
-    // TODO: traits
+    pub fn flight_level_parity(&self) -> FlightLevelParity{
+        // TODO: for 410+, change every 20
+        if self.fl % 10 == 0 {
+            if (self.fl / 10) % 2 == 0 {
+                FlightLevelParity::Even
+            } else {
+                FlightLevelParity::Odd
+            }
+        } else {
+            FlightLevelParity::Unusable
+        }
+    }
+
+    pub fn is_fl_parity_odd(&self) -> bool{
+        self.flight_level_parity() == FlightLevelParity::Odd
+    }
 }
 
 impl From<(&str, &str, u16)> for FlightPlan  {

@@ -62,7 +62,6 @@ fn parse_lines(headers: String, lines: Vec<String>, columns: &[&str]) -> Option<
             Some(mesure)
         })
         .collect::<Option<Vec<_>>>()?;
-
     println!("First data parsed: {:?}", data.get(0));
     Some(())
 }
