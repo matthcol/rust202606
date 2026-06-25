@@ -48,6 +48,6 @@ cargo build --release
 
 ## Ajout dépendances
 ```
-cargo add somedep
+cargo add chrono
 cargo add --dev rstest
 ```
