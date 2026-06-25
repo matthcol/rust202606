@@ -1,9 +1,17 @@
 
-use std::f64;
+use std::{any::Any, f64};
 
 trait Mesurable2D{
     fn area(&self) -> f64;
     fn perimeter(&self) -> f64;
+}
+
+trait DebugMesurable2D: Mesurable2D + std::fmt::Debug {
+    fn as_any(&self) -> &dyn Any;
+}
+
+impl<T: Mesurable2D + std::fmt::Debug + Any> DebugMesurable2D for T {
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -26,7 +34,9 @@ impl Mesurable2D for Circle{
 }
 
 #[derive(Debug)]
-struct Polygon{}
+struct Polygon{
+    // TODO
+}
 
 impl Mesurable2D for Polygon {
     fn area(&self) -> f64 {
@@ -73,6 +83,17 @@ where
 }
 
 
+macro_rules! print_total_area {
+    ($label:expr, $fn:expr, $source:expr) => {{
+        let total_area = $fn($source);
+        println!("{} total area: {}", $label, total_area.ceil());
+    }};
+    ($label:expr, $expr:expr) => {{
+        let total_area: f64 = $expr;
+        println!("{} total area: {}", $label, total_area.ceil());
+    }};
+}
+
 fn play_with_mesurables(){
     let circles = vec![
         Circle{
@@ -93,7 +114,7 @@ fn play_with_mesurables(){
         },
     ];
     let polygons = vec![Polygon{}, Polygon{}];
-    let mut mesurables: Vec<&dyn Mesurable2D> = Vec::new();
+    let mut mesurables: Vec<&dyn DebugMesurable2D> = Vec::new();
     circles.iter()
         .for_each(|c| mesurables.push(c));
      polygons.iter()
@@ -101,26 +122,33 @@ fn play_with_mesurables(){
         
     println!("{circles:#?}");
     println!("{polygons:#?}");
+    println!("{mesurables:#?}");
     // pipeline direct
-    let total_area: f64 = circles.iter()
-        .map(Circle::area)
-        .sum();
-    println!("Circles total area: {}", total_area.ceil());
+    print_total_area!("[direct vec of circle]", circles.iter().map(Circle::area).sum::<f64>());
+    print_total_area!("[fun slice of circle]", total_area_slice_circle, &circles);
+    print_total_area!("[fun slice of mesurable=circle]", total_area_slice_mesurable, &circles);
+    print_total_area!("[fun iterator of mesurable=circle]", total_area_iterator_mesurable, circles.iter());
+    print_total_area!("[fun iterator of mesurable=polygon]", total_area_iterator_mesurable, polygons.iter());
+    // NB: attention le vecteur mesurables contient des references par rapport aux 2 précédents
+    print_total_area!("[fun iterator of &dyn mesurable]", total_area_iterator_dyn_mesurable,
+        mesurables.iter().copied().map(|m| m as &dyn Mesurable2D) // dereference + upcast
+    );
 
-    let total_area: f64 = total_area_slice_circle(&circles);
-    println!("Circles total area: {}", total_area.ceil());
-
-    let total_area: f64 = total_area_slice_mesurable(&circles);
-    println!("Circles total area: {}", total_area.ceil());
-
-    let total_area: f64 = total_area_iterator_mesurable(circles.iter());
-    println!("Circles total area: {}", total_area.ceil());
-
-    let total_area = total_area_iterator_mesurable(polygons.iter());
-    println!("Polygon total area: {}", total_area.ceil());
-
-    let total_area = total_area_iterator_dyn_mesurable(mesurables.into_iter());
-    println!("Mesurable total area: {}", total_area.ceil());
+    // les données sont toujours disponibles :)
+    println!("Data still available:");
+    mesurables.iter()
+        .for_each(|m| {
+            println!("\t- {m:?}");
+            println!("\t\t* area: {}", m.area());
+            println!("\t\t* perimeter: {}", m.perimeter());
+            if let Some(circle) = m.as_any().downcast_ref::<Circle>() {
+                let Point(x, y ) = circle.center;
+                println!("\t\t* radius: {}", circle.radius);
+                println!("\t\t* center: (x={x}, y={y})");
+            } else if let Some(_polygon) = m.as_any().downcast_ref::<Polygon>() {
+                println!("\t\t* polygon"); // TODO: use something specific about polygon
+            }
+        });
 }
 
 fn main() {
