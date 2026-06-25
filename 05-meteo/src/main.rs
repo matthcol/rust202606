@@ -3,6 +3,8 @@ use std::fs::File;
 use std::process;
 use std::io::{BufRead, BufReader, Result};
 
+mod mesure;
+
 // stack with a lot of match Ok/Err
 fn _handle_meteo_file(f: File) -> std::result::Result<(String, Vec<String>), String>{
     let mut buf = BufReader::new(f);
@@ -62,7 +64,7 @@ fn parse_lines(headers: String, lines: Vec<String>, columns: &[&str]) -> Option<
             Some(mesure)
         })
         .collect::<Option<Vec<_>>>()?;
-    println!("First data parsed: {:?}", data.get(0));
+    println!("5 first data parsed: {:#?}", &data[..5]);
     Some(())
 }
 
