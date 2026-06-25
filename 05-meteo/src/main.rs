@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fs::File;
 use std::process;
 use std::io::{BufRead, BufReader, Result};
 
-use chrono::ParseResult;
+use chrono::{NaiveDate, NaiveDateTime};
 
 use crate::mesure::Mesure;
 
@@ -70,7 +70,7 @@ fn parse_lines(headers: String, lines: Vec<String>, columns: &[&str]) -> Option<
         .collect::<Option<Vec<_>>>()?;
     println!("5 first data parsed: {:#?}", &data[..5]);
     let mesures: Vec<Mesure> = data.into_iter()
-       // .filter(|map| !map.get("T").unwrap().is_empty())
+       // .filter(|map| !map.get("T").unwrap().is_empty())  // when from don't handle empty string for temperatures
         .map(Mesure::from)
         .filter(|m| !m.temperature.is_nan())
         .collect();
@@ -95,7 +95,24 @@ fn read_meteo_file_simple(filename: &str) -> Result<()>{
     println!("First line: {:?}", lines.get(0));
     println!("Data count: {}", lines.len());
     if let Some(mesures) = parse_lines(headers, lines, &["NUM_POSTE", "NOM_USUEL", "AAAAMMJJHH", "T"]){
-        println!("{:#?}", &mesures[..5])
+        println!("{:#?}", &mesures[..5]);
+
+        // exo : afficher les stations uniques triees
+        let noms: BTreeSet<&str> = mesures.iter()
+            .map(|m| m.nom_usuel.as_str())
+            .collect();
+        println!("Stations: {noms:?}");
+        
+        // exo : en choisir une et sortir les extrema par jours du mois de juin 2026
+        let dt_min = NaiveDateTime::from(NaiveDate::from_ymd_opt(2026, 6, 1).unwrap());
+        let mesure_max = mesures.iter()
+            .filter(|m| m.nom_usuel == "TOULOUSE-BLAGNAC")
+            .filter(|m| m.horaire >= dt_min)
+            // .max_by_key(|m| m.temperature); // KO: pas d'ordre total sur les f32
+            // .max_by(|m1, m2| m1.temperature.partial_cmp(&m2.temperature).unwrap()) // OK
+            .max_by_key(|m| (m.temperature * 10.) as u16)
+            .unwrap();
+        println!("Max: {mesure_max:?}")
     }
     Ok(())
 }
