@@ -3,6 +3,10 @@ use std::fs::File;
 use std::process;
 use std::io::{BufRead, BufReader, Result};
 
+use chrono::ParseResult;
+
+use crate::mesure::Mesure;
+
 mod mesure;
 
 // stack with a lot of match Ok/Err
@@ -43,7 +47,7 @@ fn _read_meteo_file(filename: &str){
 }
 
 // Stack avec propagation d'erreur au niveau de chaque fonction
-fn parse_lines(headers: String, lines: Vec<String>, columns: &[&str]) -> Option<()>{
+fn parse_lines(headers: String, lines: Vec<String>, columns: &[&str]) -> Option<Vec<Mesure>>{
     let mut column_indexes: HashMap<&str, usize> = HashMap::new();
     let header_vec: Vec<&str> = headers.split(";").collect();
     for column in columns{
@@ -65,7 +69,12 @@ fn parse_lines(headers: String, lines: Vec<String>, columns: &[&str]) -> Option<
         })
         .collect::<Option<Vec<_>>>()?;
     println!("5 first data parsed: {:#?}", &data[..5]);
-    Some(())
+    let mesures: Vec<Mesure> = data.into_iter()
+       // .filter(|map| !map.get("T").unwrap().is_empty())
+        .map(Mesure::from)
+        .filter(|m| !m.temperature.is_nan())
+        .collect();
+    Some(mesures)
 }
 
 fn handle_meteo_file_simple(f: File) -> Result<(String, Vec<String>)>{
@@ -85,9 +94,13 @@ fn read_meteo_file_simple(filename: &str) -> Result<()>{
     println!("Headers: {headers}");
     println!("First line: {:?}", lines.get(0));
     println!("Data count: {}", lines.len());
-    parse_lines(headers, lines, &["NUM_POSTE", "NOM_USUEL", "AAAAMMJJHH", "T"]);
+    if let Some(mesures) = parse_lines(headers, lines, &["NUM_POSTE", "NOM_USUEL", "AAAAMMJJHH", "T"]){
+        println!("{:#?}", &mesures[..5])
+    }
     Ok(())
 }
+
+
 
 fn main() {
     // _read_meteo_file("data/H_31_latest-2025-2026.csv");
